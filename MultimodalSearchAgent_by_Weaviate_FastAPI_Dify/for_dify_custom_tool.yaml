@@ -1,0 +1,65 @@
+
+openapi: 3.0.1
+
+info:
+  title: Product Multimodal and Tag Search API
+  description: |
+    商品情報に対して
+    自然文によるマルチモーダル検索とタグ検索のハイブリッド検索を行うAPI。
+    説明文・画像特徴とタグを考慮して類似度検索を実施する。
+    ユーザが入力した検索条件が具体的な特徴の場合は、そのまま検索クエリとして利用できる。
+    ユーザが入力した検索条件が曖昧・抽象的・比喩的な表現である場合は、検索対象の特徴を表す具体的な自然文へ変換してから検索すること。
+  version: "1.0.0"
+
+servers:
+  - url: http://192.168.10.1:10002
+
+paths:
+  /search_product_database_by_weaviate_hybrid_search:
+    post:
+      operationId: searchProductByQueryExpansionAndHybridSearch
+      summary: 商品自然文検索
+      description: |
+        商品を自然文で検索する。
+        このツールは以下のような特徴検索に利用できる。
+        具体的な検索例:
+         - 無地もしくはワンポイントのデザインで白のパーカー
+         - インナーとしても使えそうな薄手の生地のロングTシャツで色は控えめで無地
+         - オフィスでも付けれる派手過ぎず大人しすぎずな腕時計
+        また、以下のような曖昧な表現についても利用できる。
+        抽象的な検索例:
+         - 〇〇〇〇さんが着ていそうなワンピース
+         - シュッとしているデニム
+         - 渋谷で流行っている服装
+        抽象的な表現を含む場合は、検索実行前に具体的な特徴へ解釈した内容をユーザへ提示し、ユーザの確認を得てから検索すること。
+        検索クエリには、検索対象の特徴を表す自然文を設定すること。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: |
+                    検索対象の特徴を表す自然文。
+                  example: 無地もしくはワンポイント、白のパーカー
+      responses:
+        "200":
+          description: 検索成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: |
+                      検索結果メッセージ。
+                      名前・説明文・画像URL・スコアを含む。
+
+        "500":
+          description: システムエラー

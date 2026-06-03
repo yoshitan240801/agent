@@ -1,0 +1,12 @@
+services:
+  relay-api-server:
+    build:
+      context: .
+    container_name: relay-api-server
+    ports:
+      - "10002:10002"
+    volumes:
+      - ./work:/app
+    env_file:
+      - ./work/.env
+    restart: unless-stopped
