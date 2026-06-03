@@ -69,7 +69,7 @@
 │
 ├── manage_weaviate_cloud.ipynb
 │
-├── openapi.yaml
+├── for_dify_custom_tool.yaml
 │
 └── README.md
 ```
@@ -125,7 +125,7 @@ FastAPI サーバ起動用です。
 
 ---
 
-### openapi.yaml
+### for_dify_custom_tool.yaml
 
 Dify Custom Tool 登録用 OpenAPI Specification です。
 
