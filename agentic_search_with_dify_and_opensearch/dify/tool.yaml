@@ -1,0 +1,137 @@
+openapi: 3.0.1
+
+info:
+  title: Product Agentic Search API
+  version: "1.0.0"
+  description: |
+    商品検索を行うAI検索API。
+    ユーザが自然文で入力した検索条件をもとに、
+    OpenSearch Agentic Searchが検索DSLを自動生成し、
+    ベクトル検索(BM25・画像・商品名・商品説明・特徴情報)を組み合わせて商品を検索する。
+    ユーザの入力はできるだけそのまま検索クエリとして利用すること。
+    キーワード検索へ変換したり、検索式へ書き換えたりしないこと。
+
+servers:
+  - url: http://hogehoge:10001
+
+paths:
+  /search_bra_by_opensearch_agentic_search:
+    post:
+      operationId: searchProductByAgenticSearch
+      summary: 商品を自然文で検索する
+      description: |
+        商品を自然文で検索する。
+
+        このツールは以下のような検索に利用できる。
+
+        【デザイン】
+        - 赤系で華やかなブラジャー
+        - 上品なレース
+        - 黒で高級感がある
+        - 夏らしいデザイン
+        - 可愛い雰囲気
+        - 大人っぽいデザイン
+
+        【色】
+        - 赤
+        - 白
+        - 黒
+        - ピンク
+        - 紫
+        - 明るい色
+        - 鮮やかな色
+
+        【機能】
+        - 谷間を作りたい
+        - 盛れる
+        - パッドあり
+        - ワイヤー入り
+        - 手洗い可能
+
+        【素材】
+        - 肌触りが良い
+        - レース素材
+        - ナイロン
+        - ポリエステル
+
+        【サイズ】
+        - B70
+        - C65
+        - F75
+
+        【価格】
+        - 15000円以下
+        - 10000円〜20000円
+
+        【複合条件】
+        - 明るい色で夏らしく谷間を作れるB70
+        - 黒でセクシーなレースブラ
+        - 可愛くてパッド付きで15000円以内
+
+        OpenSearch Agentic Searchが検索方法を自動的に決定するため、
+        検索クエリはユーザの意図を表す自然文をそのまま渡すこと。
+
+        検索前にキーワードへ変換したり、
+        DSLやSQLのような形式へ変換したりしないこと。
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: |
+                    ユーザが入力した検索条件を表す自然文。
+                    内容はできるだけ変更せず、そのまま渡すこと。
+                  example: >
+                    明るい色で夏らしいデザインのB70、
+                    パッドありで15000円くらいのブラジャー
+
+      responses:
+        "200":
+          description: 商品検索成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dsl_query:
+                    type: string
+                    description: OpenSearch Agentic Searchが生成したDSL
+                  results:
+                    type: array
+                    description: 検索結果一覧
+                    items:
+                      type: object
+                      properties:
+                        rank:
+                          type: integer
+                        score:
+                          type: number
+                        product_name:
+                          type: string
+                        description:
+                          type: string
+                        features:
+                          type: array
+                          items:
+                            type: string
+                        sizes:
+                          type: array
+                          items:
+                            type: string
+                        prices:
+                          type: array
+                          items:
+                            type: number
+                        image_url:
+                          type: string
+                        page_url:
+                          type: string
+        "500":
+          description: システムエラー
