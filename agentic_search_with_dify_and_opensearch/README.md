@@ -16,7 +16,7 @@ LLMが検索結果をユーザ向けに分かりやすく要約します。
 
 ---
 
-# Features
+# 特徴
 
 - OpenSearch Agentic Search
 - QueryPlanningTool
@@ -30,7 +30,7 @@ LLMが検索結果をユーザ向けに分かりやすく要約します。
 
 ---
 
-# Architecture
+# システム構成
 
 ```
                  User
@@ -98,7 +98,7 @@ LLMが検索結果をユーザ向けに分かりやすく要約します。
 
 ---
 
-# Search Flow
+# 処理の流れ
 
 ```
 User Query
@@ -165,7 +165,7 @@ User
 
 ---
 
-# Repository Structure
+# リポジトリ構成
 
 ```
 agentic_search_with_dify_and_opensearch
@@ -191,8 +191,6 @@ agentic_search_with_dify_and_opensearch
 ---
 
 # OpenSearch Index
-
-Each product stores the following information.
 
 | Field | Purpose |
 |---------|----------|
@@ -264,16 +262,13 @@ Examples:
 
 ---
 
-# Example Query
+# 検索クエリ例
 
 ```
-夏らしい明るい色で
-B70
-パッドあり
-15000円以内
+夏らしい明るい色でB70パッドありで15000円以内の商品を探してる
 ```
 
-Generated search includes
+Agentic Searchで行われる検索
 
 - image similarity
 - product semantic similarity
@@ -284,20 +279,12 @@ Generated search includes
 
 ---
 
-# Future Improvements
+# イメージ図
 
-Potential future enhancements include:
+![図1](./slide_01.png)
 
-- Reranking
-- Hybrid Search Score Optimization
-- Image Caption Generation
-- Personalization
-- User Behavior Feedback
-- Recommendation System
-- Shopping Assistant
+![図2](./slide_02.png)
+
+![図3](./slide_03.png)
 
 ---
-
-# License
-
-MIT License
