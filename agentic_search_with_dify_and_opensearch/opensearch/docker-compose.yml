@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+
+  opensearch:
+    image: opensearchproject/opensearch:3.7.0
+    container_name: opensearch
+
+    # restart: unless-stopped
+
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node1
+      - discovery.type=single-node
+
+      #
+      # Java Heap
+      #
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+
+      #
+      # 初期パスワード
+      #
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=hogehoge
+
+      #
+      # ML Commons
+      #
+      - plugins.ml_commons.only_run_on_ml_node=false
+      - plugins.ml_commons.native_memory_threshold=99
+
+      - bootstrap.memory_lock=true
+
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+
+    ports:
+      - "10004:9200"
+      - "10005:9600"
+
+    networks:
+      - opensearch-net
+
+  dashboards:
+    image: opensearchproject/opensearch-dashboards:3.7.0
+    container_name: opensearch-dashboards
+
+    # restart: unless-stopped
+
+    depends_on:
+      - opensearch
+
+    environment:
+      OPENSEARCH_HOSTS: '["https://opensearch:9200"]'
+
+      #
+      # Dashboard(Node.js)
+      #
+      NODE_OPTIONS: "--max-old-space-size=384"
+
+    ports:
+      - "10006:5601"
+
+    networks:
+      - opensearch-net
+
+volumes:
+  opensearch-data:
+
+networks:
+  opensearch-net:
