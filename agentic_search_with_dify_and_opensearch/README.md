@@ -336,11 +336,11 @@ agentic_search_with_dify_and_opensearch
 │   └── main.py
 │
 ├── opensearch
-│   ├── 01_connector_model_control.ipynb
-│   ├── 02_agent_pipeline_control.ipynb
-│   ├── 03_dbindex_control.ipynb
-│   ├── 04_data_register.ipynb
-│   └── 05_search.ipynb
+│   ├── 01_create_connector_deploy_model.ipynb
+│   ├── 02(bra_panty)create_agent_pipeline.ipynb
+│   ├── 03(bra_panty)create_db_index.ipynb
+│   ├── 04(bra_panty)register_data.ipynb
+│   └── 05(bra_panty)search.ipynb
 │
 └── README.md
 ```
@@ -417,61 +417,6 @@ OpenSearch Agentic Searchを利用した商品検索を実行します。
 * FastAPI
 * Docker
 * Python
-
----
-
-# 実行環境
-
-本実装では、以下のサービス・環境を利用しています。
-
-```text
-Amazon Bedrock
-Amazon Nova Multimodal Embedding v2
-OpenSearch
-Dify
-FastAPI
-Docker
-Python
-```
-
-実際のAWS環境やDifyの構成に応じて、エンドポイントや認証情報などの設定変更が必要です。
-
----
-
-# 注意事項
-
-このリポジトリは、**OpenSearch Agentic SearchとDifyを組み合わせた商品検索システムの実装例・検証用コード**です。
-
-そのため、実際のECサイトなどへ導入する場合には、以下について別途検討が必要です。
-
-* 認証・認可
-* APIのアクセス制御
-* AWS認証情報の管理
-* 秘密情報の管理
-* エラーハンドリング
-* ログ管理
-* 検索負荷への対応
-* 商品データの更新
-* ベクトルの再生成
-* 本番環境での監視
-
----
-
-# セキュリティについて
-
-リポジトリへコードを公開する際は、以下のような情報を含めないよう注意してください。
-
-```text
-AWSアクセスキー
-AWSシークレットキー
-OpenSearchの認証情報
-DifyのAPIキー
-データベースのパスワード
-.envファイル
-社内向けエンドポイント
-```
-
-必要な設定値は、環境変数などから読み込む構成にしてください。
 
 ---
 
