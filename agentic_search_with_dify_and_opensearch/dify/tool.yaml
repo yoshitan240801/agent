@@ -1,137 +1,238 @@
 openapi: 3.0.1
 
 info:
-  title: Product Agentic Search API
+  title: Underwear Agentic Search API
   version: "1.0.0"
   description: |
-    商品検索を行うAI検索API。
-    ユーザが自然文で入力した検索条件をもとに、
-    OpenSearch Agentic Searchが検索DSLを自動生成し、
-    ベクトル検索(BM25・画像・商品名・商品説明・特徴情報)を組み合わせて商品を検索する。
-    ユーザの入力はできるだけそのまま検索クエリとして利用すること。
-    キーワード検索へ変換したり、検索式へ書き換えたりしないこと。
+    ブラジャーおよびショーツの商品を自然文で検索するAI検索API。
+
+    ユーザが入力した検索条件をOpenSearch Agentic Searchへ渡し、
+    商品名、商品説明、商品詳細、商品画像、サイズ、価格などを考慮して
+    OpenSearch側で検索DSLを自動生成して商品を検索する。
+
+    このツールは「1回の呼び出しにつき、1つの商品カテゴリを検索する」ことを基本とする。
+
+    重要:
+    - ブラジャーを検索する場合は、queryに「ブラジャー」を含めること。
+    - ショーツを検索する場合は、queryに「ショーツ」を含めること。
+    - ブラジャーとショーツの両方が要求された場合、このツールを2回呼び出すこと。
+    - その場合、1回目はブラジャーだけを対象とする検索条件、
+      2回目はショーツだけを対象とする検索条件に分けること。
+    - 1回のqueryに「ブラジャー」と「ショーツ」の両方を含めて、
+      両カテゴリを同時に検索しようとしないこと。
 
 servers:
-  - url: http://hogehoge:10001
+  - url: http://host.docker.internal:10002
 
 paths:
-  /search_bra_by_opensearch_agentic_search:
+
+  /search_bra_and_panty_by_opensearch_agentic_search:
+
     post:
-      operationId: searchProductByAgenticSearch
-      summary: 商品を自然文で検索する
+
+      operationId: searchUnderwearByAgenticSearch
+
+      summary: ブラジャーまたはショーツを自然文で検索する
+
       description: |
-        商品を自然文で検索する。
+        ブラジャーまたはショーツの商品を自然文で検索する。
 
-        このツールは以下のような検索に利用できる。
+        1回のツール呼び出しでは、原則として1つの商品カテゴリのみを検索する。
 
-        【デザイン】
+        【ブラジャー検索】
+
+        queryには必ず「ブラジャー」というカテゴリを明示する。
+
+        例:
         - 赤系で華やかなブラジャー
-        - 上品なレース
-        - 黒で高級感がある
-        - 夏らしいデザイン
-        - 可愛い雰囲気
-        - 大人っぽいデザイン
+        - 上品なレースのブラジャー
+        - 黒で高級感のあるブラジャー
+        - 谷間を作れるブラジャー
+        - パッド付きのブラジャー
+        - ワイヤー入りで15000円以下のブラジャー
+        - C70で可愛いブラジャー
 
-        【色】
-        - 赤
-        - 白
-        - 黒
-        - ピンク
-        - 紫
-        - 明るい色
-        - 鮮やかな色
 
-        【機能】
-        - 谷間を作りたい
-        - 盛れる
-        - パッドあり
-        - ワイヤー入り
-        - 手洗い可能
+        【ショーツ検索】
 
-        【素材】
-        - 肌触りが良い
-        - レース素材
-        - ナイロン
-        - ポリエステル
+        queryには必ず「ショーツ」というカテゴリを明示する。
 
-        【サイズ】
-        - B70
-        - C65
-        - F75
+        例:
+        - 赤系で華やかなショーツ
+        - レースのショーツ
+        - 黒でセクシーなショーツ
+        - 可愛いショーツ
+        - 大人っぽいショーツ
+        - Mサイズで10000円以下のショーツ
 
-        【価格】
-        - 15000円以下
-        - 10000円〜20000円
 
-        【複合条件】
-        - 明るい色で夏らしく谷間を作れるB70
-        - 黒でセクシーなレースブラ
-        - 可愛くてパッド付きで15000円以内
+        【ブラジャーとショーツの両方が要求された場合】
+
+        ユーザが以下のように入力した場合:
+
+        「ブラジャーとショーツの両方でオシャレなものを探して」
+
+        1回のツール呼び出しで両方を検索してはいけない。
+
+        以下の2回に分けてツールを呼び出す。
+
+        1回目:
+        「ブラジャーでオシャレなもの」
+
+        2回目:
+        「ショーツでオシャレなもの」
+
+        また、
+
+        「赤系のブラジャーとショーツ」
+        
+        の場合は、
+
+        1回目:
+        「赤系のブラジャー」
+
+        2回目:
+        「赤系のショーツ」
+
+        として検索する。
+
+        共通する検索条件は両方のqueryに引き継ぐこと。
+
+        【検索条件】
+
+        以下のような自然文による条件をそのままqueryへ含めること。
+
+        - 色、雰囲気、デザイン
+        - 素材
+        - 機能
+        - サイズ
+        - 価格
+        - その他の商品特徴
 
         OpenSearch Agentic Searchが検索方法を自動的に決定するため、
-        検索クエリはユーザの意図を表す自然文をそのまま渡すこと。
+        queryをキーワード列やDSLへ変換する必要はない。
 
-        検索前にキーワードへ変換したり、
-        DSLやSQLのような形式へ変換したりしないこと。
+        【重要】
+
+        このAPIはカテゴリを引数として別途受け取らない。
+
+        そのため、カテゴリ判定はDifyエージェント側で行い、
+        queryの中に「ブラジャー」または「ショーツ」を明示的に含めること。
 
       requestBody:
         required: true
+
         content:
           application/json:
+
             schema:
               type: object
+
               required:
                 - query
+
               properties:
+
                 query:
                   type: string
+
                   description: |
-                    ユーザが入力した検索条件を表す自然文。
-                    内容はできるだけ変更せず、そのまま渡すこと。
-                  example: >
-                    明るい色で夏らしいデザインのB70、
-                    パッドありで15000円くらいのブラジャー
+                    1つの商品カテゴリを対象とした自然文の検索条件。
+
+                    必ず「ブラジャー」または「ショーツ」のどちらか一方を
+                    query内に含めること。
+
+                    「ブラジャー」と「ショーツ」の両方を同時に含めてはいけない。
+
+                  examples:
+
+                    bra:
+                      summary: ブラジャー検索
+                      value: "赤系で華やかなブラジャー"
+
+                    panty:
+                      summary: ショーツ検索
+                      value: "赤系で華やかなショーツ"
 
       responses:
+
         "200":
+
           description: 商品検索成功
+
           content:
+
             application/json:
+
               schema:
+
                 type: object
+
                 properties:
+
                   dsl_query:
-                    type: string
+                    type: object
                     description: OpenSearch Agentic Searchが生成したDSL
+
                   results:
                     type: array
                     description: 検索結果一覧
+
                     items:
+
                       type: object
+
                       properties:
+
                         rank:
                           type: integer
+                          description: 検索結果の順位
+
                         score:
                           type: number
-                        product_name:
+                          description: OpenSearchの検索スコア
+
+                        product:
                           type: string
+                          description: 商品コード
+
+                        category:
+                          type: string
+                          description: 商品カテゴリ
+
+                        name:
+                          type: string
+                          description: 商品名
+
                         description:
                           type: string
-                        features:
+                          description: 商品説明
+
+                        detail:
                           type: array
+                          description: 商品詳細
                           items:
                             type: string
-                        sizes:
-                          type: array
-                          items:
-                            type: string
-                        prices:
-                          type: array
-                          items:
-                            type: number
+
                         image_url:
                           type: string
-                        page_url:
+                          description: 商品画像Markdown
+
+                        product_url:
                           type: string
+                          description: 商品ページURL
+
+                        size_price:
+                          type: array
+                          description: サイズごとの価格
+                          items:
+                            type: object
+                            properties:
+                              size:
+                                type: string
+                              price:
+                                type: number
+
         "500":
+
           description: システムエラー
