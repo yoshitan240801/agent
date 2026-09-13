@@ -1,173 +1,330 @@
-# Agentic Search with Dify and OpenSearch
+# 下着検索AIエージェント
 
-OpenSearch Agentic Search を利用した自然文商品検索システムのサンプル実装です。
+## Dify × FastAPI × OpenSearch Agentic Searchによるマルチモーダル商品検索
 
-検索対象の商品データに対して
+自然な文章で入力した検索条件から、**ブラジャーやショーツの商品を検索するAIエージェント**のサンプル実装です。
 
-- ベクトル検索（Amazon Nova Multimodal Embeddings）
-- BM25検索
-- Agentic Search (QueryPlanningTool)
-- Claude (Dify Agent)
+商品名や商品説明などのテキスト情報だけでなく、**商品画像をベクトル化した情報も検索に利用**することで、「かわいい」「夏っぽい」「レースがある」「セクシー系」など、商品の見た目や雰囲気を含む自然な検索を実現します。
 
-を組み合わせ、自然文から商品検索を行います。
-
-画像・商品説明・商品名・特徴量を組み合わせた検索を行い、
-LLMが検索結果をユーザ向けに分かりやすく要約します。
+検索条件には、商品のデザインだけでなく、**サイズや価格などの条件も指定できます。**
 
 ---
 
-# 特徴
+## こんな検索ができます
 
-- OpenSearch Agentic Search
-- QueryPlanningTool
-- Amazon Nova Multimodal Embeddings
-- Neural Search
-- BM25 Search
-- Bool Query
-- Dify Agent
-- FastAPI Middleware
-- Claude Sonnet
+例えば、次のような自然文を入力できます。
+
+```text
+セクシー系で、レースがあって、1万円くらいのブラジャーで
+おすすめを教えて。
+```
+
+```text
+夏っぽくて、白系のショーツを探しています。
+```
+
+```text
+普段使いしやすくて、かわいいブラジャーを探して。
+```
+
+また、ブラジャーとショーツをまとめて探したい場合は、
+
+```text
+ブラジャーとショーツをセットで探したい
+```
+
+のような依頼にも対応します。
+
+この場合、DifyのAIエージェントが検索内容を判断し、ブラジャーとショーツに分けて検索を実行します。
+
+---
+
+# このシステムで実現していること
+
+### 1. 自然文による商品検索
+
+「商品名」などの検索項目を意識して指定する必要はありません。
+
+例えば、
+
+```text
+かわいくてレースがあって、1万円くらいのブラジャー
+```
+
+のような自然な文章をそのまま入力できます。
+
+---
+
+### 2. 複数条件をまとめて指定
+
+以下のような複数の条件を1回の自然文に含めることができます。
+
+* カテゴリー
+* デザイン・雰囲気
+* 商品の特徴
+* サイズ
+* 価格
+
+AIが検索意図を解釈し、OpenSearchの検索条件に変換します。
+
+---
+
+### 3. 商品画像も検索に利用
+
+商品名・商品説明・商品詳細などのテキストだけでなく、**商品画像もベクトル化して検索に利用**します。
+
+そのため、
+
+```text
+夏っぽい
+白系
+かわいい
+レースがある
+```
+
+など、テキストとして明確な属性値を持っていない「見た目・雰囲気」に関する検索にも対応できます。
+
+---
+
+### 4. テキスト検索とベクトル検索を組み合わせる
+
+検索では、OpenSearchの
+
+* BM25による全文検索
+* ベクトル検索
+* 構造化された条件による絞り込み
+
+を組み合わせます。
+
+検索意図に応じて、商品名・商品説明・商品詳細・商品画像など、それぞれの検索結果の重要度を調整します。
+
+---
+
+### 5. サイズと価格を組み合わせた検索
+
+商品ごとにサイズと価格の組み合わせを保持しています。
+
+例えば、
+
+```json
+[
+  {
+    "size": "C65",
+    "price": 13200
+  },
+  {
+    "size": "C70",
+    "price": 13200
+  },
+  {
+    "size": "D65",
+    "price": 14300
+  }
+]
+```
+
+のようなデータ構造です。
+
+OpenSearchでは `nested` 型として保持することで、**サイズと価格の組み合わせを維持した検索**ができるようにしています。
 
 ---
 
 # システム構成
 
+```text
+ユーザー
+   │
+   │ 自然文
+   ▼
+┌─────────────────────┐
+│      Dify Agent      │
+│      Claude Sonnet   │
+└──────────┬──────────┘
+           │
+           │ OpenAPIツール
+           ▼
+┌─────────────────────┐
+│       FastAPI        │
+│    検索API・中継処理   │
+└──────────┬──────────┘
+           │
+           │ 自然文検索
+           ▼
+┌─────────────────────────────┐
+│   OpenSearch Agentic Search │
+│                             │
+│      QueryPlanningTool      │
+│              │              │
+│              ▼              │
+│       OpenSearch DSL生成     │
+└──────────────┬──────────────┘
+               │
+               ▼
+        ┌───────────────┐
+        │ OpenSearch    │
+        │    Index      │
+        └───────┬───────┘
+                │
+        ┌───────┴────────┐
+        │                │
+        ▼                ▼
+   BM25検索          ベクトル検索
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+          商品名       商品説明    商品画像
+          ベクトル     ベクトル    ベクトル
 ```
-                 User
 
-                  │
-                  ▼
-
-          Dify Agent (Claude)
-
-                  │
-          Tool (OpenAPI)
-
-                  │
-                  ▼
-
-             FastAPI
-
-                  │
-
-      OpenSearch Agentic Search
-
-                  │
-
-      QueryPlanningTool (LLM)
-
-                  │
-
-      OpenSearch DSL Generation
-
-                  │
-
-      Bool Query
-
-        ├── Neural Search
-        │      ├─ image_vector
-        │      ├─ product_name_vector
-        │      ├─ description_vector
-        │      └─ features_vector
-        │
-        └── BM25 Search
-               ├─ product_name
-               ├─ description
-               └─ features
-
-                  │
-
-          OpenSearch Index
-
-                  │
-
-          Search Results
-
-                  │
-
-            FastAPI
-
-                  │
-
-          Dify (Claude)
-
-                  │
-
-         User Friendly Answer
-```
+検索結果はFastAPIからDifyへ返され、DifyのAIエージェントがユーザー向けの回答として整理します。
 
 ---
 
-# 処理の流れ
+# OpenSearchの検索構成
 
-```
-User Query
+今回のOpenSearchインデックスでは、主に以下の情報を保持しています。
 
-    │
+| 項目 | 用途 |
+| -------- | --------------- |
+| 商品コード | 商品の識別 |
+| カテゴリー | ブラジャー／ショーツの絞り込み |
+| 商品名 | BM25＋ベクトル検索 |
+| 商品説明 | BM25＋ベクトル検索 |
+| 商品詳細 | BM25＋ベクトル検索 |
+| 商品画像 | 表示＋画像ベクトル検索 |
+| 商品ページURL | 商品ページへのリンク |
+| サイズ | 絞り込み |
+| 価格 | 絞り込み |
 
-    ▼
-
-Dify Agent
-
-    │
-
-Natural language
-
-    │
-
-    ▼
-
-FastAPI
-
-    │
-
-OpenSearch Agentic Search
-
-    │
-
-QueryPlanningTool
-
-    │
-
-Generate DSL
-
-    │
-
-Bool Query
-
-    ├── Neural Search
-    └── BM25 Search
-
-    │
-
-Retrieve Products
-
-    │
-
-FastAPI
-
-    │
-
-JSON
-
-    │
-
-Dify Claude
-
-    │
-
-Summary
-
-    │
-
-User
-```
+商品名・商品説明・商品詳細・商品画像については、Amazon Bedrockの**Amazon Nova Multimodal Embedding v2**を利用して1024次元のベクトルに変換しています。
 
 ---
 
-# リポジトリ構成
+# 検索の考え方
 
+OpenSearch Agentic Searchの `QueryPlanningTool` に自然文を渡し、検索意図に応じたOpenSearchの検索DSLを生成します。
+
+生成された検索では、例えば以下のような検索を組み合わせます。
+
+```text
+自然文
+  │
+  ▼
+検索意図の解釈
+  │
+  ├─ カテゴリー
+  ├─ 価格
+  ├─ サイズ
+  ├─ 商品名
+  ├─ 商品説明
+  ├─ 商品詳細
+  └─ 商品画像・デザイン
+       │
+       ▼
+OpenSearch DSL
+       │
+       ├─ BM25検索
+       ├─ 商品名ベクトル検索
+       ├─ 商品説明ベクトル検索
+       ├─ 商品詳細ベクトル検索
+       ├─ 商品画像ベクトル検索
+       └─ 条件による絞り込み
+       │
+       ▼
+    商品検索結果
 ```
+
+例えば「夏っぽい」「かわいい」「レースがある」など、商品の見た目や雰囲気を重視する検索では、商品画像をベクトル化した情報を利用します。
+
+一方、「手洗い可能」「ポリエステル」「D65」など、商品情報として明確に記載されている条件については、テキスト検索や構造化された条件検索を利用します。
+
+---
+
+# ブラジャーとショーツの検索
+
+このシステムでは、
+
+```text
+ブラジャー
+ショーツ
+```
+
+を同じ検索APIから扱えるようにしています。
+
+例えば、
+
+```text
+ブラジャーで、かわいくてレースがあるもの
+```
+
+であればブラジャーを検索し、
+
+```text
+ショーツで、夏っぽくて白系のもの
+```
+
+であればショーツを検索します。
+
+さらに、
+
+```text
+ブラジャーとショーツをセットで探したい
+```
+
+のように複数カテゴリーを含む依頼については、Dify Agent側で検索内容を分解し、それぞれについて検索ツールを呼び出して結果をまとめます。
+
+---
+
+# FastAPI
+
+DifyからOpenSearch Agentic Searchを呼び出すための中継APIとしてFastAPIを利用しています。
+
+主な役割は以下です。
+
+* Difyから自然文を受け取る
+* OpenSearch Agentic Searchを呼び出す
+* 検索結果を取得する
+* Difyで扱いやすい形式に整形して返す
+
+検索API：
+
+```text
+POST
+/search_bra_and_panty_by_opensearch_agentic_search
+```
+
+リクエスト例：
+
+```json
+{
+  "query": "セクシー系で、レースがあって、1万円くらいのブラジャーを探して"
+}
+```
+
+レスポンスには、検索に利用されたDSLと商品検索結果を含めています。
+
+---
+
+# Dify
+
+DifyではAIエージェントを構築し、FastAPIをOpenAPIツールとして登録しています。
+
+Dify Agentの主な役割は、
+
+1. ユーザーの自然文を理解する
+2. 必要に応じて検索ツールを呼び出す
+3. 検索結果を確認する
+4. ユーザー向けに結果を整理して回答する
+
+ことです。
+
+特に複数カテゴリーを含む検索では、検索内容をカテゴリーごとに分解してツールを呼び出すようにしています。
+
+---
+
+# ディレクトリ構成
+
+```text
 agentic_search_with_dify_and_opensearch
 │
 ├── dify
@@ -190,92 +347,192 @@ agentic_search_with_dify_and_opensearch
 
 ---
 
-# OpenSearch Index
+# 各ファイルの役割
 
-| Field | Purpose |
-|---------|----------|
-| product_name | BM25 |
-| description | BM25 |
-| features | BM25 |
-| product_name_vector | Semantic Search |
-| description_vector | Semantic Search |
-| features_vector | Semantic Search |
-| image_vector | Image Similarity Search |
-| sizes | Filter |
-| prices | Filter |
-| image_url | Display |
-| page_url | Display |
+## `dify/tool.yaml`
+
+DifyからFastAPIの検索APIを呼び出すためのOpenAPIツール定義です。
 
 ---
 
-# Search Strategy
+## `fastapi/main.py`
 
-The QueryPlanningTool dynamically generates an OpenSearch DSL.
-
-The generated query combines:
-
-- Neural Search
-- BM25 Search
-- Filters
-
-using a `bool.should` query.
-
-Typical Neural Search targets are:
-
-- image_vector
-- product_name_vector
-- description_vector
-- features_vector
-
-Visual queries automatically increase the boost of `image_vector`.
-
-Examples:
-
-- red elegant bra
-- gorgeous floral design
-- cute lace
-- luxurious atmosphere
-
-Text-oriented queries increase the weight of textual vectors and BM25.
-
-Examples:
-
-- push-up
-- hand washable
-- polyester
-- B70
-- under 15000 yen
+Difyから受け取った自然文をOpenSearch Agentic Searchへ渡し、検索結果を整形して返すAPIを実装しています。
 
 ---
 
-# Technologies
+## `fastapi/Dockerfile`
 
-- OpenSearch
-- OpenSearch Agentic Search
-- QueryPlanningTool
-- Amazon Bedrock
-- Amazon Nova Multimodal Embeddings
-- Claude Sonnet
-- Dify
-- FastAPI
-- Docker
+FastAPIをコンテナとして実行するための設定です。
 
 ---
 
-# 検索クエリ例
+## `fastapi/docker-compose.yaml`
 
+FastAPIの実行環境を構築するための設定です。
+
+---
+
+## `opensearch/01_create_connector_deploy_model.ipynb`
+
+OpenSearchからAmazon Bedrockのモデルを利用するための接続・モデル関連の設定を行います。
+
+---
+
+## `opensearch/02(bra_panty)create_agent_pipeline.ipynb`
+
+OpenSearch Agentic Searchで利用する検索パイプラインやエージェント関連の設定を行います。
+
+---
+
+## `opensearch/03(bra_panty)create_db_index.ipynb`
+
+商品検索用のOpenSearchインデックスおよびマッピングを設定します。
+
+---
+
+## `opensearch/04(bra_panty)register_data.ipynb`
+
+商品データをOpenSearchへ登録します。
+
+商品名・商品説明・商品詳細・商品画像などの情報をベクトル化して検索に利用します。
+
+---
+
+## `opensearch/05(bra_panty)search.ipynb`
+
+OpenSearch Agentic Searchを利用した商品検索を実行します。
+
+---
+
+# 使用している主な技術
+
+* Dify
+* OpenSearch
+* OpenSearch Agentic Search
+* QueryPlanningTool
+* Amazon Bedrock
+* Amazon Nova Multimodal Embedding v2
+* Claude Sonnet
+* FastAPI
+* Docker
+* Python
+
+---
+
+# 実行環境
+
+本実装では、以下のサービス・環境を利用しています。
+
+```text
+Amazon Bedrock
+Amazon Nova Multimodal Embedding v2
+OpenSearch
+Dify
+FastAPI
+Docker
+Python
 ```
-夏らしい明るい色でB70パッドありで15000円以内の商品を探してる
+
+実際のAWS環境やDifyの構成に応じて、エンドポイントや認証情報などの設定変更が必要です。
+
+---
+
+# 注意事項
+
+このリポジトリは、**OpenSearch Agentic SearchとDifyを組み合わせた商品検索システムの実装例・検証用コード**です。
+
+そのため、実際のECサイトなどへ導入する場合には、以下について別途検討が必要です。
+
+* 認証・認可
+* APIのアクセス制御
+* AWS認証情報の管理
+* 秘密情報の管理
+* エラーハンドリング
+* ログ管理
+* 検索負荷への対応
+* 商品データの更新
+* ベクトルの再生成
+* 本番環境での監視
+
+---
+
+# セキュリティについて
+
+リポジトリへコードを公開する際は、以下のような情報を含めないよう注意してください。
+
+```text
+AWSアクセスキー
+AWSシークレットキー
+OpenSearchの認証情報
+DifyのAPIキー
+データベースのパスワード
+.envファイル
+社内向けエンドポイント
 ```
 
-Agentic Searchで行われる検索
+必要な設定値は、環境変数などから読み込む構成にしてください。
 
-- image similarity
-- product semantic similarity
-- feature semantic similarity
-- BM25
-- price filter
-- size filter
+---
+
+# この実装について
+
+このシステムでは、従来の商品検索で利用されるキーワード検索だけではなく、
+
+**「ユーザーが自然な文章で表現した商品への要望」**
+
+をAIが解釈し、
+
+**テキスト情報・商品画像・価格・サイズなど複数の情報を組み合わせて商品を検索する**
+
+ことを目的としています。
+
+例えば、
+
+```text
+セクシー系で、レースがあって、
+1万円くらいのブラジャーでおすすめを教えて。
+```
+
+という検索に対して、
+
+```text
+カテゴリー
+＋
+デザイン
+＋
+商品特徴
+＋
+価格
+＋
+商品画像
+```
+
+を組み合わせて検索することで、単純なキーワード検索とは異なる商品検索を実現します。
+
+---
+
+# 展示・デモ
+
+本実装は、**生成AIなんでも展示会 Vol.6**での展示デモとしても利用しています。
+
+自然文による下着検索を題材として、
+
+```text
+ユーザー
+  ↓
+Dify AIエージェント
+  ↓
+FastAPI
+  ↓
+OpenSearch Agentic Search
+  ↓
+BM25 ＋ ベクトル検索 ＋ 条件検索
+  ↓
+商品検索結果
+```
+
+という一連の処理を実際に動かしています。
 
 ---
 
